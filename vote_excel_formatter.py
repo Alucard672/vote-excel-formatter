@@ -694,7 +694,7 @@ def run_gui() -> None:
     from tkinter import filedialog, messagebox
 
     root = tk.Tk()
-    root.title("投票Excel整理工具")
+    root.title("Excel整理")
     root.geometry("560x270")
     root.resizable(False, False)
 
@@ -724,7 +724,7 @@ def run_gui() -> None:
             status.set("整理失败，请检查文件格式。")
             messagebox.showerror("整理失败", str(exc))
 
-    tk.Label(root, text="投票Excel整理工具", font=("Microsoft YaHei", 18, "bold")).pack(pady=(20, 8))
+    tk.Label(root, text="Excel整理", font=("Microsoft YaHei", 18, "bold")).pack(pady=(20, 8))
     tk.Label(root, text="按相同款号合并图片，重新排版为“尺码 / 数量”格式。", font=("Microsoft YaHei", 10)).pack()
     tk.Label(root, text="当前支持 .xlsx 和同版式销售订货明细 PDF。", font=("Microsoft YaHei", 9), fg="#666666").pack(pady=(3, 0))
     tk.Entry(root, textvariable=selected, width=72).pack(pady=18, padx=18)

@@ -22,10 +22,10 @@ jobs:
         run: py -m pip install -r requirements.txt
 
       - name: Build exe
-        run: py -m PyInstaller --noconfirm VoteExcelFormatter.spec
+        run: py -m PyInstaller --noconfirm Excel整理.spec
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vote-excel-formatter-windows
-          path: dist/VoteExcelFormatter.exe
+          name: excel-organizer-windows
+          path: dist/Excel整理.exe

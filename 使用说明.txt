@@ -1,4 +1,4 @@
-投票Excel整理工具
+Excel整理
 
 功能：
 1. 按“款号”分组整理。
@@ -11,7 +11,7 @@
 直接运行源码：
 1. Windows 电脑安装 Python 3.10 或以上。
 2. 双击 build_windows.bat 先生成 exe。
-3. 生成后的程序在 dist\VoteExcelFormatter.exe。
+3. 生成后的程序在 dist\Excel整理.exe。
 4. 双击 exe，选择原始 Excel，点击“开始整理”。
 5. 整理后的文件会保存在原文件同目录，文件名后面带“_整理后”。
 6. 如果打包失败，把 build_windows.log 发给开发者排查。

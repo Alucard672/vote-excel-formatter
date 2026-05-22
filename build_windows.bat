@@ -22,13 +22,13 @@ if errorlevel 1 goto failed
 echo [4/5] Building exe...
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
-call ".venv\Scripts\python.exe" -m PyInstaller --noconfirm VoteExcelFormatter.spec >> "%LOG_FILE%" 2>&1
+call ".venv\Scripts\python.exe" -m PyInstaller --noconfirm Excel整理.spec >> "%LOG_FILE%" 2>&1
 if errorlevel 1 goto failed
 
 echo [5/5] Done.
 echo.
 echo Build finished:
-echo %cd%\dist\VoteExcelFormatter.exe
+echo %cd%\dist\Excel整理.exe
 echo.
 pause
 exit /b 0

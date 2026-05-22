@@ -28,7 +28,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="VoteExcelFormatter",
+    name="Excel整理",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

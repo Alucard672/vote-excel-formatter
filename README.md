@@ -1,4 +1,4 @@
-# 投票Excel整理工具
+# Excel整理
 
 本项目是一个本地运行的小工具，用来整理投票订单 Excel：
 
@@ -33,7 +33,7 @@ build_windows.bat
 生成文件：
 
 ```text
-dist\VoteExcelFormatter.exe
+dist\Excel整理.exe
 ```
 
 如果打包失败，请查看或发送：
