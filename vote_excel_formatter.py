@@ -202,6 +202,73 @@ def load_groups(input_path: Path) -> tuple[list[str], OrderedDict[str, ProductGr
     return size_headers, groups
 
 
+def load_vertical_xlsx_rows(input_path: Path) -> tuple[list[str], list[ProductRow], dict[str, bytes]]:
+    workbook = openpyxl.load_workbook(input_path)
+    ws = workbook.active
+    columns = {clean_text(cell.value): cell.column for cell in ws[1] if clean_text(cell.value)}
+    required = ["批次", "客户", "图片", "款号", "名称", "颜色", "尺码", "订货数"]
+    missing = [name for name in required if name not in columns]
+    if missing:
+        raise ValueError(f"找不到必要表头：{', '.join(missing)}")
+
+    images_by_row = extract_images_by_row(ws)
+    sizes: list[str] = []
+    grouped: OrderedDict[tuple[str, str, str, str, str, str], ProductRow] = OrderedDict()
+    images_by_style: dict[str, bytes] = {}
+
+    for row_index in range(2, ws.max_row + 1):
+        style_no = clean_text(ws.cell(row_index, columns["款号"]).value)
+        name = clean_text(ws.cell(row_index, columns["名称"]).value)
+        color = clean_text(ws.cell(row_index, columns["颜色"]).value)
+        size = clean_text(ws.cell(row_index, columns["尺码"]).value)
+        quantity = parse_number(ws.cell(row_index, columns["订货数"]).value)
+        order_no = clean_text(ws.cell(row_index, columns["批次"]).value)
+        customer = clean_text(ws.cell(row_index, columns["客户"]).value)
+        if not style_no or not size or quantity in (None, ""):
+            continue
+        if style_no == "00000" or name == "抹零":
+            continue
+        if size not in sizes:
+            sizes.append(size)
+
+        key = (order_no, customer, style_no, name, color, "")
+        product_row = grouped.get(key)
+        if product_row is None:
+            product_row = ProductRow(
+                row_index=row_index,
+                seq=str(len(grouped) + 1),
+                order_no=order_no,
+                customer=customer,
+                style_no=style_no,
+                name=name,
+                color=color,
+                quantities=[],
+                total=0,
+            )
+            grouped[key] = product_row
+
+        while len(product_row.quantities) < len(sizes):
+            product_row.quantities.append(None)
+        size_index = sizes.index(size)
+        existing = product_row.quantities[size_index]
+        if isinstance(existing, (int, float)) and isinstance(quantity, (int, float)):
+            product_row.quantities[size_index] = existing + quantity
+        else:
+            product_row.quantities[size_index] = quantity
+        if isinstance(product_row.total, (int, float)) and isinstance(quantity, (int, float)):
+            product_row.total += quantity
+
+        image_bytes = images_by_row.get(row_index)
+        if image_bytes:
+            images_by_style.setdefault(style_no, image_bytes)
+
+    for product_row in grouped.values():
+        while len(product_row.quantities) < len(sizes):
+            product_row.quantities.append(None)
+
+    return sizes, list(grouped.values()), images_by_style
+
+
 def extract_pdf_text_items(page) -> list[tuple[float, float, str]]:
     items: list[tuple[float, float, str]] = []
 
@@ -598,10 +665,20 @@ def format_excel(input_path: Path, output_path: Path | None = None) -> Path:
         output_path = output_path.expanduser().resolve()
 
     if input_path.suffix.lower() == ".xlsx":
-        size_headers, groups = load_groups(input_path)
-        if not groups:
-            raise ValueError("没有找到可整理的商品行。")
-        write_output(size_headers, groups, output_path)
+        workbook = openpyxl.load_workbook(input_path, read_only=True)
+        ws = workbook.active
+        header_names = {clean_text(cell.value) for cell in ws[1] if clean_text(cell.value)}
+        workbook.close()
+        if {"尺码", "订货数", "款号", "颜色"}.issubset(header_names):
+            size_headers, rows, images_by_style = load_vertical_xlsx_rows(input_path)
+            if not rows:
+                raise ValueError("没有找到可整理的商品行。")
+            write_output_rows(size_headers, rows, images_by_style, output_path)
+        else:
+            size_headers, groups = load_groups(input_path)
+            if not groups:
+                raise ValueError("没有找到可整理的商品行。")
+            write_output(size_headers, groups, output_path)
     elif input_path.suffix.lower() == ".pdf":
         size_headers, rows, images_by_style = load_pdf_rows(input_path)
         if not rows:
