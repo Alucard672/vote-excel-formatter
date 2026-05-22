@@ -1,0 +1,25 @@
+投票Excel整理工具
+
+功能：
+1. 按“款号”分组整理。
+2. 相同款号只保留第一张图片。
+3. 输出格式为：图片、款号、名称、颜色、尺码 / 数量、订货数。
+4. 自动跳过“抹零 / 00000”这类非商品行。
+5. 支持 .xlsx，以及同版式“销售订货明细.pdf”。
+6. 数量为 0 的单元格会留空不显示。
+
+直接运行源码：
+1. Windows 电脑安装 Python 3.10 或以上。
+2. 双击 build_windows.bat 先生成 exe。
+3. 生成后的程序在 dist\VoteExcelFormatter.exe。
+4. 双击 exe，选择原始 Excel，点击“开始整理”。
+5. 整理后的文件会保存在原文件同目录，文件名后面带“_整理后”。
+6. 如果打包失败，把 build_windows.log 发给开发者排查。
+
+如果只是想先测试程序，不打包：
+双击 run_windows_debug.bat。
+
+命令行用法：
+python vote_excel_formatter.py "D:\投票.xlsx"
+python vote_excel_formatter.py "D:\投票.xlsx" -o "D:\投票_整理后.xlsx"
+python vote_excel_formatter.py "D:\销售订货明细.pdf"
