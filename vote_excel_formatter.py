@@ -62,6 +62,8 @@ SIZE_HEADERS = [
     "150-180",
 ]
 SIZE_X_POSITIONS = [340.0, 383.6, 427.2, 470.7, 514.3, 557.9, 601.5, 645.0, 688.6, 732.2]
+DATA_ROW_HEIGHT_PT = 28.35
+DATA_ROW_HEIGHT_PX = 38
 
 
 def clean_text(value: Any) -> str:
@@ -360,8 +362,8 @@ def add_group_image(ws, row: int, image_bytes: bytes | None, group_height: int):
         image = ExcelImage(io.BytesIO(image_bytes))
         image_copy = copy.copy(image)
         max_width = 120
-        cell_area_height = max(86, group_height * 96)
-        max_height = max(78, cell_area_height - 8)
+        cell_area_height = max(DATA_ROW_HEIGHT_PX, group_height * DATA_ROW_HEIGHT_PX)
+        max_height = max(24, cell_area_height - 8)
         ratio = min(max_width / image_copy.width, max_height / image_copy.height, 1)
         width = int(image_copy.width * ratio)
         height = int(image_copy.height * ratio)
@@ -459,7 +461,7 @@ def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup]
             for col, value in enumerate(values, start=1):
                 cell = ws.cell(row, col, value)
                 style_cell(cell, center=(col not in (3, 7)))
-            ws.row_dimensions[row].height = 72
+            ws.row_dimensions[row].height = DATA_ROW_HEIGHT_PT
             row += 1
 
         end_row = row - 1
@@ -545,7 +547,7 @@ def write_output_rows(
         for col, value in enumerate(values, start=1):
             cell = ws.cell(row_index, col, value)
             style_cell(cell, center=(col not in (5, 6)))
-        ws.row_dimensions[row_index].height = 72
+        ws.row_dimensions[row_index].height = DATA_ROW_HEIGHT_PT
         row_index += 1
 
     first_data_row = 4
