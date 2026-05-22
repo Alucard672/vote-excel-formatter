@@ -422,7 +422,7 @@ def style_cell(cell, fill=None, bold=False, color="000000", center=True):
     cell.alignment = Alignment(horizontal="center" if center else "left", vertical="center", wrap_text=True)
 
 
-def add_group_image(ws, row: int, image_bytes: bytes | None, group_height: int):
+def add_group_image(ws, row: int, image_bytes: bytes | None, group_height: int, column: int = 1):
     if not image_bytes:
         return
     try:
@@ -438,7 +438,7 @@ def add_group_image(ws, row: int, image_bytes: bytes | None, group_height: int):
         image_copy.height = height
         row_offset = max(4, int((cell_area_height - height) / 2))
         start = AnchorMarker(
-            col=0,
+            col=column - 1,
             row=row - 1,
             colOff=pixels_to_EMU(4),
             rowOff=pixels_to_EMU(row_offset),
@@ -571,7 +571,7 @@ def write_output_rows(
     ws = wb.active
     ws.title = "整理结果"
 
-    fixed_headers = ["图片", "订单号", "客户", "款号", "名称", "颜色"]
+    fixed_headers = ["订单号", "客户", "图片", "款号", "名称", "颜色"]
     total_col = len(fixed_headers) + len(size_headers) + 1
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_col)
@@ -602,9 +602,9 @@ def write_output_rows(
     for product_row in rows:
         quantities = [hide_zero(value) for value in product_row.quantities]
         values = [
-            "",
             product_row.order_no,
             product_row.customer,
+            "",
             product_row.style_no,
             product_row.name,
             product_row.color,
@@ -622,22 +622,22 @@ def write_output_rows(
     for start, end, style_no in contiguous_runs(rows, "style_no"):
         start_row = first_data_row + start
         end_row = first_data_row + end
-        merge_range_if_needed(ws, start_row, end_row, 1)
+        merge_range_if_needed(ws, start_row, end_row, 3)
         merge_range_if_needed(ws, start_row, end_row, 4)
         merge_range_if_needed(ws, start_row, end_row, 5)
         if style_no and style_no not in used_images:
-            add_group_image(ws, start_row, images_by_style.get(style_no), end - start + 1)
+            add_group_image(ws, start_row, images_by_style.get(style_no), end - start + 1, column=3)
             used_images.add(style_no)
 
-    for key_name, col in (("order_no", 2), ("customer", 3)):
+    for key_name, col in (("order_no", 1), ("customer", 2)):
         for start, end, value in contiguous_runs(rows, key_name):
             if value:
                 merge_range_if_needed(ws, first_data_row + start, first_data_row + end, col)
 
     for col_letter, width in {
-        "A": 18,
-        "B": 12,
-        "C": 14,
+        "A": 12,
+        "B": 14,
+        "C": 18,
         "D": 14,
         "E": 28,
         "F": 16,
