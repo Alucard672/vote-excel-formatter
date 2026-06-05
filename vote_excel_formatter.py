@@ -531,7 +531,12 @@ def apply_print_settings(ws) -> None:
     margin_inches = PRINT_TOP_BOTTOM_MARGIN_CM * CM_TO_INCH
     ws.page_margins.top = margin_inches
     ws.page_margins.bottom = margin_inches
+    ws.page_margins.left = margin_inches
+    ws.page_margins.right = margin_inches
     ws.page_setup.copies = PRINT_COPIES
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
 
 
 def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup], output_path: Path) -> None:
