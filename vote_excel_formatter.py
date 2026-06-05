@@ -64,6 +64,9 @@ SIZE_HEADERS = [
 SIZE_X_POSITIONS = [340.0, 383.6, 427.2, 470.7, 514.3, 557.9, 601.5, 645.0, 688.6, 732.2]
 DATA_ROW_HEIGHT_PT = 42.53
 DATA_ROW_HEIGHT_PX = 57
+CM_TO_INCH = 1 / 2.54
+PRINT_TOP_BOTTOM_MARGIN_CM = 0.5
+PRINT_COPIES = 50
 
 
 def clean_text(value: Any) -> str:
@@ -475,6 +478,13 @@ def contiguous_runs(rows: list[ProductRow], key_name: str) -> list[tuple[int, in
     return runs
 
 
+def apply_print_settings(ws) -> None:
+    margin_inches = PRINT_TOP_BOTTOM_MARGIN_CM * CM_TO_INCH
+    ws.page_margins.top = margin_inches
+    ws.page_margins.bottom = margin_inches
+    ws.page_setup.copies = PRINT_COPIES
+
+
 def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup], output_path: Path) -> None:
     wb = Workbook()
     ws = wb.active
@@ -556,6 +566,7 @@ def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup]
     ws.freeze_panes = "A4"
     ws.auto_filter.ref = f"A3:{get_column_letter(total_col)}{max(row - 1, 3)}"
     ws.sheet_view.showGridLines = False
+    apply_print_settings(ws)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)
@@ -650,6 +661,7 @@ def write_output_rows(
     ws.freeze_panes = "A4"
     ws.auto_filter.ref = f"A3:{get_column_letter(total_col)}{max(row_index - 1, 3)}"
     ws.sheet_view.showGridLines = False
+    apply_print_settings(ws)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)
