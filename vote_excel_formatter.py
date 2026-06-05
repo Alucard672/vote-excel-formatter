@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import copy
 import io
+import json
+import os
 import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -67,6 +69,8 @@ DATA_ROW_HEIGHT_PX = 57
 CM_TO_INCH = 1 / 2.54
 PRINT_TOP_BOTTOM_MARGIN_CM = 0.5
 PRINT_COPIES = 50
+GENERATION_LIMIT = 50
+APP_FOLDER_NAME = "Excel整理"
 
 
 def clean_text(value: Any) -> str:
@@ -76,6 +80,51 @@ def clean_text(value: Any) -> str:
     if text.endswith(".0") and text.replace(".", "", 1).isdigit():
         return text[:-2]
     return text
+
+
+def usage_file_path() -> Path:
+    override = os.environ.get("EXCEL_ORGANIZER_USAGE_FILE")
+    if override:
+        return Path(override).expanduser().resolve()
+
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        return Path(appdata) / APP_FOLDER_NAME / "usage.json"
+    return Path.home() / ".excel_organizer_usage.json"
+
+
+def read_usage_count() -> int:
+    path = usage_file_path()
+    if not path.exists():
+        return 0
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return 0
+    count = data.get("generation_count", 0)
+    return count if isinstance(count, int) and count >= 0 else 0
+
+
+def write_usage_count(count: int) -> None:
+    path = usage_file_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"generation_count": count, "limit": GENERATION_LIMIT}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def remaining_generations() -> int:
+    return max(0, GENERATION_LIMIT - read_usage_count())
+
+
+def ensure_generation_allowed() -> None:
+    if read_usage_count() >= GENERATION_LIMIT:
+        raise ValueError(f"已达到生成次数上限：{GENERATION_LIMIT} 次，无法继续生成。")
+
+
+def record_successful_generation() -> None:
+    write_usage_count(min(GENERATION_LIMIT, read_usage_count() + 1))
 
 
 def parse_number(value: Any) -> int | float | str | None:
@@ -668,6 +717,7 @@ def write_output_rows(
 
 
 def format_excel(input_path: Path, output_path: Path | None = None) -> Path:
+    ensure_generation_allowed()
     input_path = input_path.expanduser().resolve()
     if not input_path.exists():
         raise FileNotFoundError(f"文件不存在：{input_path}")
@@ -698,6 +748,7 @@ def format_excel(input_path: Path, output_path: Path | None = None) -> Path:
         write_output_rows(size_headers, rows, images_by_style, output_path)
     else:
         raise ValueError("当前版本支持 .xlsx 和同版式 PDF 文件。")
+    record_successful_generation()
     return output_path
 
 
@@ -711,7 +762,7 @@ def run_gui() -> None:
     root.resizable(False, False)
 
     selected = tk.StringVar()
-    status = tk.StringVar(value="请选择需要整理的 Excel 文件。")
+    status = tk.StringVar(value=f"请选择需要整理的 Excel 文件。剩余生成次数：{remaining_generations()} 次。")
 
     def choose_file():
         filename = filedialog.askopenfilename(
@@ -730,8 +781,9 @@ def run_gui() -> None:
             status.set("正在整理，请稍等...")
             root.update_idletasks()
             output = format_excel(Path(selected.get()))
-            status.set(f"整理完成：{output.name}")
-            messagebox.showinfo("完成", f"整理完成：\n{output}")
+            remaining = remaining_generations()
+            status.set(f"整理完成：{output.name}。剩余生成次数：{remaining} 次。")
+            messagebox.showinfo("完成", f"整理完成：\n{output}\n\n剩余生成次数：{remaining} 次")
         except Exception as exc:
             status.set("整理失败，请检查文件格式。")
             messagebox.showerror("整理失败", str(exc))
