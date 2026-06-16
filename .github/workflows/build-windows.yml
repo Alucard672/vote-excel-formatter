@@ -5,6 +5,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -27,8 +30,22 @@ jobs:
       - name: Build exe
         run: py -m PyInstaller --noconfirm Excel整理.spec
 
+      - name: Package release zip
+        shell: pwsh
+        run: Compress-Archive -Path "dist/Excel整理" -DestinationPath "Excel整理-windows.zip" -Force
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: excel-organizer-windows
           path: dist/Excel整理
+
+      - name: Publish latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-windows
+          name: Excel整理 Windows 最新版
+          body: |
+            Windows 文件夹版，下载 Excel整理-windows.zip 后解压，进入 Excel整理 文件夹运行 Excel整理.exe。
+          files: Excel整理-windows.zip
+          make_latest: true
