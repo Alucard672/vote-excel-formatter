@@ -28,7 +28,7 @@ if errorlevel 1 goto failed
 echo [5/5] Done.
 echo.
 echo Build finished:
-echo %cd%\dist\Excel整理.exe
+echo %cd%\dist\Excel整理\Excel整理.exe
 echo.
 pause
 exit /b 0

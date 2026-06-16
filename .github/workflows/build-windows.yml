@@ -28,4 +28,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: excel-organizer-windows
-          path: dist/Excel整理.exe
+          path: dist/Excel整理

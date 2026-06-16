@@ -33,7 +33,7 @@ build_windows.bat
 生成文件：
 
 ```text
-dist\Excel整理.exe
+dist\Excel整理\Excel整理.exe
 ```
 
 如果打包失败，请查看或发送：
