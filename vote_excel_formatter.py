@@ -498,6 +498,20 @@ def contiguous_runs(rows: list[ProductRow], key_name: str) -> list[tuple[int, in
     return runs
 
 
+def dynamic_title_from_rows(rows: list[ProductRow]) -> str:
+    for product_row in rows:
+        parts = [
+            clean_text(product_row.order_no),
+            clean_text(product_row.customer),
+            clean_text(product_row.order_date),
+            clean_text(product_row.salesperson),
+        ]
+        title = "  ".join(part for part in parts if part)
+        if title:
+            return title
+    return "销售订货明细整理表"
+
+
 def apply_print_settings(ws) -> None:
     margin_inches = PRINT_TOP_BOTTOM_MARGIN_CM * CM_TO_INCH
     ws.page_margins.top = margin_inches
@@ -520,7 +534,8 @@ def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup]
     remark_col = total_col + 1
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=remark_col)
-    title = ws.cell(1, 1, "销售订货明细整理表")
+    title_text = dynamic_title_from_rows([row for group in groups.values() for row in group.rows])
+    title = ws.cell(1, 1, title_text)
     title.fill = TITLE_FILL
     title.font = Font(name="Microsoft YaHei", size=16, bold=True, color="FFFFFF")
     title.alignment = Alignment(horizontal="center", vertical="center")
@@ -620,7 +635,7 @@ def write_output_rows(
     remark_col = total_col + 1
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=remark_col)
-    title = ws.cell(1, 1, "销售订货明细整理表")
+    title = ws.cell(1, 1, dynamic_title_from_rows(rows))
     title.fill = TITLE_FILL
     title.font = Font(name="Microsoft YaHei", size=16, bold=True, color="FFFFFF")
     title.alignment = Alignment(horizontal="center", vertical="center")
