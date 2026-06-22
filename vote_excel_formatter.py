@@ -507,6 +507,7 @@ def apply_print_settings(ws) -> None:
     ws.sheet_properties.pageSetUpPr.fitToPage = True
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 0
+    ws.print_title_rows = "1:2"
 
 
 def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup], output_path: Path) -> None:
