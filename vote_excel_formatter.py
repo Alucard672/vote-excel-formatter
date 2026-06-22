@@ -17,6 +17,7 @@ from openpyxl.drawing.image import Image as ExcelImage
 from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, OneCellAnchor
 from openpyxl.drawing.xdr import XDRPositiveSize2D
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.worksheet.pagebreak import Break
 from openpyxl.utils.units import pixels_to_EMU
 from openpyxl.utils import get_column_letter
 
@@ -513,6 +514,16 @@ def dynamic_title_from_rows(rows: list[ProductRow]) -> str:
     return "销售订货明细整理表"
 
 
+def add_order_page_breaks(ws, rows: list[ProductRow], first_data_row: int) -> None:
+    previous_order = ""
+    for index, product_row in enumerate(rows):
+        current_order = clean_text(product_row.order_no)
+        if index > 0 and current_order and previous_order and current_order != previous_order:
+            ws.row_breaks.append(Break(id=first_data_row + index))
+        if current_order:
+            previous_order = current_order
+
+
 def apply_print_settings(ws) -> None:
     margin_inches = PRINT_TOP_BOTTOM_MARGIN_CM * CM_TO_INCH
     ws.page_margins.top = margin_inches
@@ -607,6 +618,7 @@ def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup]
     ws.freeze_panes = "A4"
     ws.auto_filter.ref = f"A3:{get_column_letter(remark_col)}{max(row - 1, 3)}"
     ws.sheet_view.showGridLines = False
+    add_order_page_breaks(ws, [row for group in groups.values() for row in group.rows], 4)
     apply_print_settings(ws)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -699,6 +711,7 @@ def write_output_rows(
     ws.freeze_panes = "A4"
     ws.auto_filter.ref = f"A3:{get_column_letter(remark_col)}{max(row_index - 1, 3)}"
     ws.sheet_view.showGridLines = False
+    add_order_page_breaks(ws, rows, first_data_row)
     apply_print_settings(ws)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
