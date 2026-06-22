@@ -507,7 +507,7 @@ def apply_print_settings(ws) -> None:
     ws.sheet_properties.pageSetUpPr.fitToPage = True
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 0
-    ws.print_title_rows = "1:2"
+    ws.print_title_rows = "1:3"
 
 
 def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup], output_path: Path) -> None:
@@ -519,29 +519,36 @@ def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup]
     total_col = len(fixed_headers) + len(size_headers) + 1
     remark_col = total_col + 1
 
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=remark_col)
+    title = ws.cell(1, 1, "销售订货明细整理表")
+    title.fill = TITLE_FILL
+    title.font = Font(name="Microsoft YaHei", size=16, bold=True, color="FFFFFF")
+    title.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 24
+
     for col, header in enumerate(fixed_headers, start=1):
-        cell = ws.cell(1, col, header)
+        cell = ws.cell(2, col, header)
         style_cell(cell, GROUP_FILL, bold=True)
-        ws.merge_cells(start_row=1, start_column=col, end_row=2, end_column=col)
+        ws.merge_cells(start_row=2, start_column=col, end_row=3, end_column=col)
 
     size_start = len(fixed_headers) + 1
     size_end = size_start + len(size_headers) - 1
-    ws.merge_cells(start_row=1, start_column=size_start, end_row=1, end_column=size_end)
-    size_title = ws.cell(1, size_start, "尺码 / 数量")
+    ws.merge_cells(start_row=2, start_column=size_start, end_row=2, end_column=size_end)
+    size_title = ws.cell(2, size_start, "尺码 / 数量")
     style_cell(size_title, GROUP_FILL, bold=True)
 
     for offset, header in enumerate(size_headers):
-        cell = ws.cell(2, size_start + offset, header)
+        cell = ws.cell(3, size_start + offset, header)
         style_cell(cell, SIZE_FILL, bold=True)
 
-    total_header = ws.cell(1, total_col, "总订货数")
+    total_header = ws.cell(2, total_col, "总订货数")
     style_cell(total_header, GROUP_FILL, bold=True)
-    ws.merge_cells(start_row=1, start_column=total_col, end_row=2, end_column=total_col)
-    remark_header = ws.cell(1, remark_col, "明细备注")
+    ws.merge_cells(start_row=2, start_column=total_col, end_row=3, end_column=total_col)
+    remark_header = ws.cell(2, remark_col, "明细备注")
     style_cell(remark_header, GROUP_FILL, bold=True)
-    ws.merge_cells(start_row=1, start_column=remark_col, end_row=2, end_column=remark_col)
+    ws.merge_cells(start_row=2, start_column=remark_col, end_row=3, end_column=remark_col)
 
-    row = 3
+    row = 4
     for group in groups.values():
         start_row = row
         for product_row in group.rows:
@@ -589,8 +596,8 @@ def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup]
     ws.column_dimensions[get_column_letter(total_col)].width = 12
     ws.column_dimensions[get_column_letter(remark_col)].width = 18
 
-    ws.freeze_panes = "A3"
-    ws.auto_filter.ref = f"A2:{get_column_letter(remark_col)}{max(row - 1, 2)}"
+    ws.freeze_panes = "A4"
+    ws.auto_filter.ref = f"A3:{get_column_letter(remark_col)}{max(row - 1, 3)}"
     ws.sheet_view.showGridLines = False
     apply_print_settings(ws)
 
@@ -612,27 +619,34 @@ def write_output_rows(
     total_col = len(fixed_headers) + len(size_headers) + 1
     remark_col = total_col + 1
 
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=remark_col)
+    title = ws.cell(1, 1, "销售订货明细整理表")
+    title.fill = TITLE_FILL
+    title.font = Font(name="Microsoft YaHei", size=16, bold=True, color="FFFFFF")
+    title.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 24
+
     for col, header in enumerate(fixed_headers, start=1):
-        cell = ws.cell(1, col, header)
+        cell = ws.cell(2, col, header)
         style_cell(cell, GROUP_FILL, bold=True)
-        ws.merge_cells(start_row=1, start_column=col, end_row=2, end_column=col)
+        ws.merge_cells(start_row=2, start_column=col, end_row=3, end_column=col)
 
     size_start = len(fixed_headers) + 1
     size_end = size_start + len(size_headers) - 1
-    ws.merge_cells(start_row=1, start_column=size_start, end_row=1, end_column=size_end)
-    style_cell(ws.cell(1, size_start, "尺码 / 数量"), GROUP_FILL, bold=True)
+    ws.merge_cells(start_row=2, start_column=size_start, end_row=2, end_column=size_end)
+    style_cell(ws.cell(2, size_start, "尺码 / 数量"), GROUP_FILL, bold=True)
 
     for offset, header in enumerate(size_headers):
-        style_cell(ws.cell(2, size_start + offset, header), SIZE_FILL, bold=True)
+        style_cell(ws.cell(3, size_start + offset, header), SIZE_FILL, bold=True)
 
-    total_header = ws.cell(1, total_col, "总订货数")
+    total_header = ws.cell(2, total_col, "总订货数")
     style_cell(total_header, GROUP_FILL, bold=True)
-    ws.merge_cells(start_row=1, start_column=total_col, end_row=2, end_column=total_col)
-    remark_header = ws.cell(1, remark_col, "明细备注")
+    ws.merge_cells(start_row=2, start_column=total_col, end_row=3, end_column=total_col)
+    remark_header = ws.cell(2, remark_col, "明细备注")
     style_cell(remark_header, GROUP_FILL, bold=True)
-    ws.merge_cells(start_row=1, start_column=remark_col, end_row=2, end_column=remark_col)
+    ws.merge_cells(start_row=2, start_column=remark_col, end_row=3, end_column=remark_col)
 
-    row_index = 3
+    row_index = 4
     for product_row in rows:
         quantities = [hide_zero(value) for value in product_row.quantities]
         values = [
@@ -654,7 +668,7 @@ def write_output_rows(
         ws.row_dimensions[row_index].height = DATA_ROW_HEIGHT_PT
         row_index += 1
 
-    first_data_row = 3
+    first_data_row = 4
     used_images: set[str] = set()
     for start, end, style_no in contiguous_runs(rows, "style_no"):
         start_row = first_data_row + start
@@ -687,8 +701,8 @@ def write_output_rows(
     ws.column_dimensions[get_column_letter(total_col)].width = 12
     ws.column_dimensions[get_column_letter(remark_col)].width = 18
 
-    ws.freeze_panes = "A3"
-    ws.auto_filter.ref = f"A2:{get_column_letter(remark_col)}{max(row_index - 1, 2)}"
+    ws.freeze_panes = "A4"
+    ws.auto_filter.ref = f"A3:{get_column_letter(remark_col)}{max(row_index - 1, 3)}"
     ws.sheet_view.showGridLines = False
     apply_print_settings(ws)
 
