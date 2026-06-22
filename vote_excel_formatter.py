@@ -500,12 +500,13 @@ def contiguous_runs(rows: list[ProductRow], key_name: str) -> list[tuple[int, in
 
 def dynamic_title_from_rows(rows: list[ProductRow]) -> str:
     for product_row in rows:
-        parts = [
-            clean_text(product_row.order_no),
-            clean_text(product_row.customer),
-            clean_text(product_row.order_date),
-            clean_text(product_row.salesperson),
+        fields = [
+            ("订单号", clean_text(product_row.order_no)),
+            ("客户", clean_text(product_row.customer)),
+            ("日期", clean_text(product_row.order_date)),
+            ("业务员", clean_text(product_row.salesperson)),
         ]
+        parts = [f"{label}：{value}" for label, value in fields if value]
         title = "  ".join(part for part in parts if part)
         if title:
             return title
