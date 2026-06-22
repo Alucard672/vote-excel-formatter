@@ -524,6 +524,36 @@ def add_order_page_breaks(ws, rows: list[ProductRow], first_data_row: int) -> No
             previous_order = current_order
 
 
+def safe_sheet_title(base: str, used_titles: set[str]) -> str:
+    cleaned = re.sub(r"[:\\/?*\[\]]", "_", clean_text(base)) or "订单"
+    cleaned = cleaned[:31]
+    title = cleaned
+    index = 2
+    while title in used_titles:
+        suffix = f"-{index}"
+        title = f"{cleaned[:31 - len(suffix)]}{suffix}"
+        index += 1
+    used_titles.add(title)
+    return title
+
+
+def split_rows_by_order(rows: list[ProductRow]) -> list[list[ProductRow]]:
+    groups: list[list[ProductRow]] = []
+    current: list[ProductRow] = []
+    current_order = ""
+    for product_row in rows:
+        order_no = clean_text(product_row.order_no)
+        if current and order_no and current_order and order_no != current_order:
+            groups.append(current)
+            current = []
+        current.append(product_row)
+        if order_no:
+            current_order = order_no
+    if current:
+        groups.append(current)
+    return groups
+
+
 def apply_print_settings(ws) -> None:
     margin_inches = PRINT_TOP_BOTTOM_MARGIN_CM * CM_TO_INCH
     ws.page_margins.top = margin_inches
@@ -534,6 +564,91 @@ def apply_print_settings(ws) -> None:
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 0
     ws.print_title_rows = "1:3"
+
+
+def write_rows_to_sheet(
+    ws,
+    size_headers: list[str],
+    rows: list[ProductRow],
+    images_by_style: dict[str, bytes],
+) -> None:
+    fixed_headers = ["图片", "款号", "名称", "颜色"]
+    total_col = len(fixed_headers) + len(size_headers) + 1
+    remark_col = total_col + 1
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=remark_col)
+    title = ws.cell(1, 1, dynamic_title_from_rows(rows))
+    title.fill = TITLE_FILL
+    title.font = Font(name="Microsoft YaHei", size=16, bold=True, color="FFFFFF")
+    title.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 24
+
+    for col, header in enumerate(fixed_headers, start=1):
+        cell = ws.cell(2, col, header)
+        style_cell(cell, GROUP_FILL, bold=True)
+        ws.merge_cells(start_row=2, start_column=col, end_row=3, end_column=col)
+
+    size_start = len(fixed_headers) + 1
+    size_end = size_start + len(size_headers) - 1
+    ws.merge_cells(start_row=2, start_column=size_start, end_row=2, end_column=size_end)
+    style_cell(ws.cell(2, size_start, "尺码 / 数量"), GROUP_FILL, bold=True)
+
+    for offset, header in enumerate(size_headers):
+        style_cell(ws.cell(3, size_start + offset, header), SIZE_FILL, bold=True)
+
+    total_header = ws.cell(2, total_col, "总订货数")
+    style_cell(total_header, GROUP_FILL, bold=True)
+    ws.merge_cells(start_row=2, start_column=total_col, end_row=3, end_column=total_col)
+    remark_header = ws.cell(2, remark_col, "明细备注")
+    style_cell(remark_header, GROUP_FILL, bold=True)
+    ws.merge_cells(start_row=2, start_column=remark_col, end_row=3, end_column=remark_col)
+
+    row_index = 4
+    for product_row in rows:
+        quantities = [hide_zero(value) for value in product_row.quantities]
+        values = [
+            "",
+            product_row.style_no,
+            product_row.name,
+            product_row.color,
+            *quantities,
+            product_row.total,
+            product_row.remark,
+        ]
+        for col, value in enumerate(values, start=1):
+            cell = ws.cell(row_index, col, value)
+            style_cell(cell, center=(col not in (3, 4, remark_col)))
+        ws.row_dimensions[row_index].height = DATA_ROW_HEIGHT_PT
+        row_index += 1
+
+    first_data_row = 4
+    used_images: set[str] = set()
+    for start, end, style_no in contiguous_runs(rows, "style_no"):
+        start_row = first_data_row + start
+        end_row = first_data_row + end
+        merge_range_if_needed(ws, start_row, end_row, 1)
+        merge_range_if_needed(ws, start_row, end_row, 2)
+        merge_range_if_needed(ws, start_row, end_row, 3)
+        if style_no and style_no not in used_images:
+            add_group_image(ws, start_row, images_by_style.get(style_no), end - start + 1, column=1)
+            used_images.add(style_no)
+
+    for col_letter, width in {
+        "A": 12.61,
+        "B": 14,
+        "C": 28,
+        "D": 16,
+    }.items():
+        ws.column_dimensions[col_letter].width = width
+    for col in range(size_start, total_col):
+        ws.column_dimensions[get_column_letter(col)].width = 10
+    ws.column_dimensions[get_column_letter(total_col)].width = 12
+    ws.column_dimensions[get_column_letter(remark_col)].width = 18
+
+    ws.freeze_panes = "A4"
+    ws.auto_filter.ref = f"A3:{get_column_letter(remark_col)}{max(row_index - 1, 3)}"
+    ws.sheet_view.showGridLines = False
+    apply_print_settings(ws)
 
 
 def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup], output_path: Path) -> None:
@@ -632,87 +747,13 @@ def write_output_rows(
     output_path: Path,
 ) -> None:
     wb = Workbook()
-    ws = wb.active
-    ws.title = "整理结果"
-
-    fixed_headers = ["图片", "款号", "名称", "颜色"]
-    total_col = len(fixed_headers) + len(size_headers) + 1
-    remark_col = total_col + 1
-
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=remark_col)
-    title = ws.cell(1, 1, dynamic_title_from_rows(rows))
-    title.fill = TITLE_FILL
-    title.font = Font(name="Microsoft YaHei", size=16, bold=True, color="FFFFFF")
-    title.alignment = Alignment(horizontal="center", vertical="center")
-    ws.row_dimensions[1].height = 24
-
-    for col, header in enumerate(fixed_headers, start=1):
-        cell = ws.cell(2, col, header)
-        style_cell(cell, GROUP_FILL, bold=True)
-        ws.merge_cells(start_row=2, start_column=col, end_row=3, end_column=col)
-
-    size_start = len(fixed_headers) + 1
-    size_end = size_start + len(size_headers) - 1
-    ws.merge_cells(start_row=2, start_column=size_start, end_row=2, end_column=size_end)
-    style_cell(ws.cell(2, size_start, "尺码 / 数量"), GROUP_FILL, bold=True)
-
-    for offset, header in enumerate(size_headers):
-        style_cell(ws.cell(3, size_start + offset, header), SIZE_FILL, bold=True)
-
-    total_header = ws.cell(2, total_col, "总订货数")
-    style_cell(total_header, GROUP_FILL, bold=True)
-    ws.merge_cells(start_row=2, start_column=total_col, end_row=3, end_column=total_col)
-    remark_header = ws.cell(2, remark_col, "明细备注")
-    style_cell(remark_header, GROUP_FILL, bold=True)
-    ws.merge_cells(start_row=2, start_column=remark_col, end_row=3, end_column=remark_col)
-
-    row_index = 4
-    for product_row in rows:
-        quantities = [hide_zero(value) for value in product_row.quantities]
-        values = [
-            "",
-            product_row.style_no,
-            product_row.name,
-            product_row.color,
-            *quantities,
-            product_row.total,
-            product_row.remark,
-        ]
-        for col, value in enumerate(values, start=1):
-            cell = ws.cell(row_index, col, value)
-            style_cell(cell, center=(col not in (3, 4, remark_col)))
-        ws.row_dimensions[row_index].height = DATA_ROW_HEIGHT_PT
-        row_index += 1
-
-    first_data_row = 4
-    used_images: set[str] = set()
-    for start, end, style_no in contiguous_runs(rows, "style_no"):
-        start_row = first_data_row + start
-        end_row = first_data_row + end
-        merge_range_if_needed(ws, start_row, end_row, 1)
-        merge_range_if_needed(ws, start_row, end_row, 2)
-        merge_range_if_needed(ws, start_row, end_row, 3)
-        if style_no and style_no not in used_images:
-            add_group_image(ws, start_row, images_by_style.get(style_no), end - start + 1, column=1)
-            used_images.add(style_no)
-
-    for col_letter, width in {
-        "A": 12.61,
-        "B": 14,
-        "C": 28,
-        "D": 16,
-    }.items():
-        ws.column_dimensions[col_letter].width = width
-    for col in range(size_start, total_col):
-        ws.column_dimensions[get_column_letter(col)].width = 10
-    ws.column_dimensions[get_column_letter(total_col)].width = 12
-    ws.column_dimensions[get_column_letter(remark_col)].width = 18
-
-    ws.freeze_panes = "A4"
-    ws.auto_filter.ref = f"A3:{get_column_letter(remark_col)}{max(row_index - 1, 3)}"
-    ws.sheet_view.showGridLines = False
-    add_order_page_breaks(ws, rows, first_data_row)
-    apply_print_settings(ws)
+    used_titles: set[str] = set()
+    order_groups = split_rows_by_order(rows)
+    for index, order_rows in enumerate(order_groups):
+        ws = wb.active if index == 0 else wb.create_sheet()
+        customer_name = next((clean_text(row.customer) for row in order_rows if clean_text(row.customer)), "")
+        ws.title = safe_sheet_title(customer_name, used_titles)
+        write_rows_to_sheet(ws, size_headers, order_rows, images_by_style)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)
