@@ -530,7 +530,7 @@ def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup]
     ws = wb.active
     ws.title = "整理结果"
 
-    fixed_headers = ["订单号", "客户名", "图片", "订货日期", "业务员", "款号", "名称", "颜色"]
+    fixed_headers = ["图片", "订货日期", "业务员", "款号", "名称", "颜色"]
     total_col = len(fixed_headers) + len(size_headers) + 1
     remark_col = total_col + 1
 
@@ -570,8 +570,6 @@ def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup]
         for product_row in group.rows:
             quantities = [hide_zero(value) for value in product_row.quantities]
             values = [
-                product_row.order_no,
-                product_row.customer,
                 "",
                 product_row.order_date,
                 product_row.salesperson,
@@ -590,20 +588,18 @@ def write_output(size_headers: list[str], groups: OrderedDict[str, ProductGroup]
 
         end_row = row - 1
         if end_row > start_row:
-            for col in (3, 6, 7):
+            for col in (1, 4, 5):
                 merge_range_if_needed(ws, start_row, end_row, col)
 
-        add_group_image(ws, start_row, group.image_bytes, len(group.rows), column=3)
+        add_group_image(ws, start_row, group.image_bytes, len(group.rows), column=1)
 
     widths = {
-        "A": 12,
-        "B": 14,
-        "C": 12.61,
-        "D": 12,
-        "E": 10,
-        "F": 14,
-        "G": 28,
-        "H": 16,
+        "A": 12.61,
+        "B": 12,
+        "C": 10,
+        "D": 14,
+        "E": 28,
+        "F": 16,
     }
     for col_letter, width in widths.items():
         ws.column_dimensions[col_letter].width = width
@@ -631,7 +627,7 @@ def write_output_rows(
     ws = wb.active
     ws.title = "整理结果"
 
-    fixed_headers = ["订单号", "客户名", "图片", "订货日期", "业务员", "款号", "名称", "颜色"]
+    fixed_headers = ["图片", "订货日期", "业务员", "款号", "名称", "颜色"]
     total_col = len(fixed_headers) + len(size_headers) + 1
     remark_col = total_col + 1
 
@@ -666,8 +662,6 @@ def write_output_rows(
     for product_row in rows:
         quantities = [hide_zero(value) for value in product_row.quantities]
         values = [
-            product_row.order_no,
-            product_row.customer,
             "",
             product_row.order_date,
             product_row.salesperson,
@@ -680,7 +674,7 @@ def write_output_rows(
         ]
         for col, value in enumerate(values, start=1):
             cell = ws.cell(row_index, col, value)
-            style_cell(cell, center=(col not in (7, 8, remark_col)))
+            style_cell(cell, center=(col not in (5, 6, remark_col)))
         ws.row_dimensions[row_index].height = DATA_ROW_HEIGHT_PT
         row_index += 1
 
@@ -689,27 +683,25 @@ def write_output_rows(
     for start, end, style_no in contiguous_runs(rows, "style_no"):
         start_row = first_data_row + start
         end_row = first_data_row + end
-        merge_range_if_needed(ws, start_row, end_row, 3)
-        merge_range_if_needed(ws, start_row, end_row, 6)
-        merge_range_if_needed(ws, start_row, end_row, 7)
+        merge_range_if_needed(ws, start_row, end_row, 1)
+        merge_range_if_needed(ws, start_row, end_row, 4)
+        merge_range_if_needed(ws, start_row, end_row, 5)
         if style_no and style_no not in used_images:
-            add_group_image(ws, start_row, images_by_style.get(style_no), end - start + 1, column=3)
+            add_group_image(ws, start_row, images_by_style.get(style_no), end - start + 1, column=1)
             used_images.add(style_no)
 
-    for key_name, col in (("order_no", 1), ("customer", 2), ("order_date", 4), ("salesperson", 5)):
+    for key_name, col in (("order_date", 2), ("salesperson", 3)):
         for start, end, value in contiguous_runs(rows, key_name):
             if value:
                 merge_range_if_needed(ws, first_data_row + start, first_data_row + end, col)
 
     for col_letter, width in {
-        "A": 12,
-        "B": 14,
-        "C": 12.61,
-        "D": 12,
-        "E": 10,
-        "F": 14,
-        "G": 28,
-        "H": 16,
+        "A": 12.61,
+        "B": 12,
+        "C": 10,
+        "D": 14,
+        "E": 28,
+        "F": 16,
     }.items():
         ws.column_dimensions[col_letter].width = width
     for col in range(size_start, total_col):
